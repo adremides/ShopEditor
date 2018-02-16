@@ -3,7 +3,8 @@ Edit XML Shops of IGCN Mu Online Server S9E3
 
 ## Credits to
 
-- TopReal.IT for Code
+- Bigman for Code
+- TopReal.IT for... appearing in credits of the original source code I get :)
 - Virtual for Decompile
 - Moacir for share (http://forum.ragezone.com/f508/igc-mu-toolkit-shop-editor-1077612/)
 - RageZone Forum for the space to share
