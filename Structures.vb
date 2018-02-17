@@ -308,6 +308,12 @@ Public Class Structures
         End Sub
     End Class
 
+    Public Structure ItemSearchStuct
+        Public ItemName As String
+        Public ItemCategory As Integer
+        Public ItemIndex As Integer
+    End Structure
+
     Public Structure ShopItem
         Public ShopLocX As Integer
 
@@ -621,7 +627,8 @@ Public Class Structures
                                                     ByRef ItemName As String(,),
                                                     ByRef ItemSize As String(,),
                                                     ByRef L_Ancient As List(Of Structures.c_AncientItems),
-                                                    ByRef L_AncientNames As List(Of Structures.c_AncientNames))
+                                                    ByRef L_AncientNames As List(Of Structures.c_AncientNames),
+                                                    ByRef L_SearchItems As List(Of Structures.ItemSearchStuct))
 
         Dim group_index As String = ""
         Dim group_name As String = ""
@@ -684,6 +691,12 @@ Public Class Structures
                                 .Name = item_name,
                                 .Type = Convert.ToInt16(item_type)
                             }
+                    Dim searchItem As New Structures.ItemSearchStuct() With {
+                            .ItemName = item_name,
+                            .ItemCategory = Convert.ToInt32(group_index),
+                            .ItemIndex = Convert.ToInt32(item_index)
+                        }
+                    L_SearchItems.Add(searchItem)
                     Select Case item.Group
                         Case 0
                             L_Swords.Add(item)

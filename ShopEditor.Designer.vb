@@ -22,6 +22,7 @@ Partial Class ShopEditor
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        Me.components = New System.ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(ShopEditor))
         Me.mnuMain = New System.Windows.Forms.MenuStrip()
         Me.fileToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem()
@@ -65,6 +66,8 @@ Partial Class ShopEditor
         Me.GroupBox1 = New System.Windows.Forms.GroupBox()
         Me.ListBox_Element = New System.Windows.Forms.ListBox()
         Me.CheckBox_Serial = New System.Windows.Forms.CheckBox()
+        Me.BindingSource1 = New System.Windows.Forms.BindingSource(Me.components)
+        Me.searchBox = New System.Windows.Forms.ComboBox()
         Me.mnuMain.SuspendLayout()
         Me.grpExcOpt.SuspendLayout()
         CType(Me.pictureBox_ItemPreview, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -77,6 +80,7 @@ Partial Class ShopEditor
         CType(Me.pictureBox_ShopPreview, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.grpSocket.SuspendLayout()
         Me.GroupBox1.SuspendLayout()
+        CType(Me.BindingSource1, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.SuspendLayout()
         '
         'mnuMain
@@ -415,17 +419,17 @@ Partial Class ShopEditor
         'listBox_Index
         '
         Me.listBox_Index.FormattingEnabled = True
-        Me.listBox_Index.Location = New System.Drawing.Point(176, 31)
+        Me.listBox_Index.Location = New System.Drawing.Point(176, 57)
         Me.listBox_Index.Name = "listBox_Index"
-        Me.listBox_Index.Size = New System.Drawing.Size(213, 134)
+        Me.listBox_Index.Size = New System.Drawing.Size(213, 108)
         Me.listBox_Index.TabIndex = 2
         '
         'listBox_Group
         '
         Me.listBox_Group.FormattingEnabled = True
-        Me.listBox_Group.Location = New System.Drawing.Point(12, 31)
+        Me.listBox_Group.Location = New System.Drawing.Point(12, 57)
         Me.listBox_Group.Name = "listBox_Group"
-        Me.listBox_Group.Size = New System.Drawing.Size(158, 134)
+        Me.listBox_Group.Size = New System.Drawing.Size(158, 108)
         Me.listBox_Group.TabIndex = 1
         '
         'pictureBox_Init_1x1
@@ -498,11 +502,23 @@ Partial Class ShopEditor
         Me.CheckBox_Serial.Text = "Serial"
         Me.CheckBox_Serial.UseVisualStyleBackColor = True
         '
+        'searchBox
+        '
+        Me.searchBox.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.Suggest
+        Me.searchBox.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems
+        Me.searchBox.FlatStyle = System.Windows.Forms.FlatStyle.System
+        Me.searchBox.FormattingEnabled = True
+        Me.searchBox.Location = New System.Drawing.Point(12, 32)
+        Me.searchBox.Name = "searchBox"
+        Me.searchBox.Size = New System.Drawing.Size(377, 21)
+        Me.searchBox.TabIndex = 42
+        '
         'ShopEditor
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(652, 468)
+        Me.Controls.Add(Me.searchBox)
         Me.Controls.Add(Me.label_FileName)
         Me.Controls.Add(Me.checkBox_FO)
         Me.Controls.Add(Me.button_Update)
@@ -545,6 +561,7 @@ Partial Class ShopEditor
         CType(Me.pictureBox_ShopPreview, System.ComponentModel.ISupportInitialize).EndInit()
         Me.grpSocket.ResumeLayout(False)
         Me.GroupBox1.ResumeLayout(False)
+        CType(Me.BindingSource1, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -591,4 +608,6 @@ Partial Class ShopEditor
     Private WithEvents GroupBox1 As System.Windows.Forms.GroupBox
     Private WithEvents ListBox_Element As System.Windows.Forms.ListBox
     Private WithEvents CheckBox_Serial As System.Windows.Forms.CheckBox
+    Friend WithEvents BindingSource1 As Windows.Forms.BindingSource
+    Friend WithEvents searchBox As Windows.Forms.ComboBox
 End Class
