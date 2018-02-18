@@ -5,7 +5,7 @@ Imports System.IO
 Imports System.Windows.Forms
 Imports System.Resources
 Imports System.Xml
-
+Imports System.Collections
 
 Public Class ShopEditor
 
@@ -13,6 +13,7 @@ Public Class ShopEditor
     Private DontWork As Boolean
     Private ItemName As String(,) = New String(15, 512) {}
     Private ItemSize As String(,) = New String(15, 512) {}
+    Private CompleteItemList As List(Of Structures.ItemSearchStuct) = New List(Of Structures.ItemSearchStuct)
     Private L_Ancient As New List(Of Structures.c_AncientItems)()
     Private L_AncientLevelDatas As New List(Of Structures.c_AncientNames)()
     Private L_AncientNames As New List(Of Structures.c_AncientNames)()
@@ -59,7 +60,10 @@ Public Class ShopEditor
             Me.strct.ReadItemList("Data\IGC_ItemList.xml", Me.L_Groups, Me.L_Swords, Me.L_Axes, Me.L_MacesScepters,
                 Me.L_Spears, Me.L_BowsCrossBows, Me.L_Staffs, Me.L_Shields, Me.L_Helms, Me.L_Armors,
                 Me.L_Pants, Me.L_Gloves, Me.L_Boots, Me.L_WingsSkillsSeedsOthers, Me.L_Others1, Me.L_Others2,
-                Me.L_Scrolls, Me.ItemName, Me.ItemSize, Me.L_Ancient, Me.L_AncientNames)
+                Me.L_Scrolls, Me.ItemName, Me.ItemSize, Me.L_Ancient, Me.L_AncientNames, Me.CompleteItemList)
+            For i As Integer = 0 To CompleteItemList.Count - 1
+                searchBox.Items.Add(CompleteItemList(i).ItemName)
+            Next
         Catch ex As Exception
             MessageBox.Show(ex.Message, "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Application.[Exit]()
@@ -232,7 +236,7 @@ Public Class ShopEditor
         Dim str3 As String = String.Concat(New Object() {text, If(shopItem.Luck, "+Luck", ""), vbLf & vbLf & "Durability: ", shopItem.Durablity})
         Dim text2 As String = str3 & (If((shopItem.Ancient > 0), (If((shopItem.Ancient = 5), vbLf & vbLf & "Ancinet: Level 1", (If((shopItem.Ancient = 10), vbLf & vbLf & "Ancinet: Level 2", "")))), ""))
         If shopItem.Excellent > 0 Then
-            text2 = String.Concat(New String() {text2, vbLf & vbLf & "Excellent Options:" & vbLf, If(Me.checkBox_ExcOpt1.Checked, (Me.checkBox_ExcOpt1.Text & vbLf), ""), If(Me.checkBox_ExcOpt2.Checked, (Me.checkBox_ExcOpt2.Text & vbLf), ""), If(Me.checkBox_ExcOpt3.Checked, (Me.checkBox_ExcOpt3.Text & vbLf), ""), If(Me.checkBox_ExcOpt4.Checked, (Me.checkBox_ExcOpt4.Text & vbLf), ""), _
+            text2 = String.Concat(New String() {text2, vbLf & vbLf & "Excellent Options:" & vbLf, If(Me.checkBox_ExcOpt1.Checked, (Me.checkBox_ExcOpt1.Text & vbLf), ""), If(Me.checkBox_ExcOpt2.Checked, (Me.checkBox_ExcOpt2.Text & vbLf), ""), If(Me.checkBox_ExcOpt3.Checked, (Me.checkBox_ExcOpt3.Text & vbLf), ""), If(Me.checkBox_ExcOpt4.Checked, (Me.checkBox_ExcOpt4.Text & vbLf), ""),
                 If(Me.checkBox_ExcOpt5.Checked, (Me.checkBox_ExcOpt5.Text & vbLf), ""), If(Me.checkBox_ExcOpt6.Checked, Me.checkBox_ExcOpt6.Text, "")})
         End If
         If Me.AddItemPicture(text2, empty, shopItem) Then
@@ -271,7 +275,7 @@ Public Class ShopEditor
         Dim str3 As String = String.Concat(New Object() {text, If(shopItem.Luck, "+Luck", ""), vbLf & vbLf & "Durability: ", shopItem.Durablity})
         Dim text2 As String = str3 & (If((shopItem.Ancient > 0), (If((shopItem.Ancient = 5), vbLf & vbLf & "Ancinet: Level 1", (If((shopItem.Ancient = 10), vbLf & vbLf & "Ancinet: Level 2", "")))), ""))
         If shopItem.Excellent > 0 Then
-            text2 = String.Concat(New String() {text2, vbLf & vbLf & "Excellent Options:" & vbLf, If(Me.checkBox_ExcOpt1.Checked, (Me.checkBox_ExcOpt1.Text & vbLf), ""), If(Me.checkBox_ExcOpt2.Checked, (Me.checkBox_ExcOpt2.Text & vbLf), ""), If(Me.checkBox_ExcOpt3.Checked, (Me.checkBox_ExcOpt3.Text & vbLf), ""), If(Me.checkBox_ExcOpt4.Checked, (Me.checkBox_ExcOpt4.Text & vbLf), ""), _
+            text2 = String.Concat(New String() {text2, vbLf & vbLf & "Excellent Options:" & vbLf, If(Me.checkBox_ExcOpt1.Checked, (Me.checkBox_ExcOpt1.Text & vbLf), ""), If(Me.checkBox_ExcOpt2.Checked, (Me.checkBox_ExcOpt2.Text & vbLf), ""), If(Me.checkBox_ExcOpt3.Checked, (Me.checkBox_ExcOpt3.Text & vbLf), ""), If(Me.checkBox_ExcOpt4.Checked, (Me.checkBox_ExcOpt4.Text & vbLf), ""),
                 If(Me.checkBox_ExcOpt5.Checked, (Me.checkBox_ExcOpt5.Text & vbLf), ""), If(Me.checkBox_ExcOpt6.Checked, Me.checkBox_ExcOpt6.Text, "")})
         End If
         Me.LastSelectetItem.Controls.Clear()
@@ -303,7 +307,7 @@ Public Class ShopEditor
                 Me.pictureBox_ItemPreview.BackgroundImage = DirectCast(
                     My.Resources.ResourceManager.GetObject(
                         "_" & Convert.ToString(Me.listBox_Group.SelectedValue) &
-                                               Convert.ToString(Me.listBox_Index.SelectedValue)), 
+                                               Convert.ToString(Me.listBox_Index.SelectedValue)),
                         Bitmap)
                 If Me.pictureBox_ItemPreview.BackgroundImage.Size.Width > Me.pictureBox_ItemPreview.Size.Width OrElse
                     Me.pictureBox_ItemPreview.BackgroundImage.Size.Height > Me.pictureBox_ItemPreview.Size.Height Then
@@ -987,6 +991,24 @@ Public Class ShopEditor
 
 
     End Sub
+
+
+    Private Function FindItemByName(partialName As String) As List(Of Structures.ItemSearchStuct)
+        Dim searchResults As New List(Of Structures.ItemSearchStuct)()
+        For i As Integer = 0 To CompleteItemList.Count - 1
+            If CompleteItemList(i).ItemName.ToLower.Contains(partialName) Then
+                searchResults.Add(CompleteItemList(i))
+            End If
+        Next
+        Return searchResults
+    End Function
+
+    Private Sub searchBox_SelectedIndexChanged(sender As Object, e As EventArgs) Handles searchBox.SelectedIndexChanged
+        Dim selectedItem As Structures.ItemSearchStuct = CompleteItemList(searchBox.SelectedIndex)
+        listBox_Group.SelectedIndex = selectedItem.ItemCategory
+        listBox_Index.SelectedIndex = selectedItem.ItemIndex
+    End Sub
+
 #End Region
 
 End Class
