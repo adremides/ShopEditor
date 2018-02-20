@@ -46,6 +46,13 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="frmAdvancedFilter.designer.vb">
+      <DependentUpon>frmAdvancedFilter.vb</DependentUpon>
+    </Compile>
+    <Compile Include="frmAdvancedFilter.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="ShopEditor.Designer.vb">
       <DependentUpon>ShopEditor.vb</DependentUpon>
     </Compile>
@@ -64,6 +71,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="frmAdvancedFilter.resx">
+      <DependentUpon>frmAdvancedFilter.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="ShopEditor.resx">
       <DependentUpon>ShopEditor.vb</DependentUpon>
     </EmbeddedResource>

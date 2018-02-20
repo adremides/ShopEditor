@@ -68,6 +68,7 @@ Partial Class ShopEditor
         Me.CheckBox_Serial = New System.Windows.Forms.CheckBox()
         Me.BindingSource1 = New System.Windows.Forms.BindingSource(Me.components)
         Me.searchBox = New System.Windows.Forms.ComboBox()
+        Me.btnSearchFilter = New System.Windows.Forms.Button()
         Me.mnuMain.SuspendLayout()
         Me.grpExcOpt.SuspendLayout()
         CType(Me.pictureBox_ItemPreview, System.ComponentModel.ISupportInitialize).BeginInit()
@@ -510,14 +511,24 @@ Partial Class ShopEditor
         Me.searchBox.FormattingEnabled = True
         Me.searchBox.Location = New System.Drawing.Point(12, 32)
         Me.searchBox.Name = "searchBox"
-        Me.searchBox.Size = New System.Drawing.Size(377, 21)
+        Me.searchBox.Size = New System.Drawing.Size(268, 21)
         Me.searchBox.TabIndex = 42
+        '
+        'btnSearchFilter
+        '
+        Me.btnSearchFilter.Location = New System.Drawing.Point(286, 31)
+        Me.btnSearchFilter.Name = "btnSearchFilter"
+        Me.btnSearchFilter.Size = New System.Drawing.Size(103, 23)
+        Me.btnSearchFilter.TabIndex = 43
+        Me.btnSearchFilter.Text = "Advanced Filter"
+        Me.btnSearchFilter.UseVisualStyleBackColor = True
         '
         'ShopEditor
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(652, 468)
+        Me.Controls.Add(Me.btnSearchFilter)
         Me.Controls.Add(Me.searchBox)
         Me.Controls.Add(Me.label_FileName)
         Me.Controls.Add(Me.checkBox_FO)
@@ -545,7 +556,7 @@ Partial Class ShopEditor
         Me.Name = "ShopEditor"
         Me.ShowIcon = False
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
-        Me.Text = "ShopEditor"
+        Me.Text = "MuOnline S9E3 Shop Editor"
         Me.mnuMain.ResumeLayout(False)
         Me.mnuMain.PerformLayout()
         Me.grpExcOpt.ResumeLayout(False)
@@ -610,4 +621,5 @@ Partial Class ShopEditor
     Private WithEvents CheckBox_Serial As System.Windows.Forms.CheckBox
     Friend WithEvents BindingSource1 As Windows.Forms.BindingSource
     Friend WithEvents searchBox As Windows.Forms.ComboBox
+    Friend WithEvents btnSearchFilter As Windows.Forms.Button
 End Class

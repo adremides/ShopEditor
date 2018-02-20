@@ -6,8 +6,13 @@ Imports System.Windows.Forms
 Imports System.Resources
 Imports System.Xml
 Imports System.Collections
+Imports System.Runtime.InteropServices
 
 Public Class ShopEditor
+
+    <DllImport("user32.dll", CharSet:=CharSet.Auto)>
+    Private Shared Function SendMessage(ByVal hWnd As IntPtr, ByVal msg As Integer, ByVal wParam As Integer, <MarshalAs(UnmanagedType.LPWStr)> ByVal lParam As String) As Int32
+    End Function
 
 #Region "    Global Variables"
     Private DontWork As Boolean
@@ -22,6 +27,7 @@ Public Class ShopEditor
     Private L_Axes As New List(Of Structures.UniItem)()
     Private L_Boots As New List(Of Structures.UniItem)()
     Private L_BowsCrossBows As New List(Of Structures.UniItem)()
+    Private L_CharClassDatas As New List(Of Structures.c_CharClass)()
     Private L_ElementDatas As New List(Of Structures.c_ElementData)()
     Private L_Gloves As New List(Of Structures.UniItem)()
     Private L_Groups As New List(Of Structures.c_Groups)()
@@ -54,22 +60,29 @@ Public Class ShopEditor
         Dim form As ShopEditor = DirectCast(Application.OpenForms(0), ShopEditor)
         Me.AddPreviewBoxes(8, 15)
 
+
+
         Try
+            Me.strct.Setc_CharClass(Me.L_CharClassDatas)
             Me.strct.ReadItemSetOption("Data\IGC_ItemSetOption.xml", Me.L_AncientNames)
             Me.strct.ReadItemSetType("Data\IGC_ItemSetType.xml", Me.L_Ancient)
             Me.strct.ReadItemList("Data\IGC_ItemList.xml", Me.L_Groups, Me.L_Swords, Me.L_Axes, Me.L_MacesScepters,
                 Me.L_Spears, Me.L_BowsCrossBows, Me.L_Staffs, Me.L_Shields, Me.L_Helms, Me.L_Armors,
                 Me.L_Pants, Me.L_Gloves, Me.L_Boots, Me.L_WingsSkillsSeedsOthers, Me.L_Others1, Me.L_Others2,
-                Me.L_Scrolls, Me.ItemName, Me.ItemSize, Me.L_Ancient, Me.L_AncientNames, Me.CompleteItemList)
-            For i As Integer = 0 To CompleteItemList.Count - 1
-                searchBox.Items.Add(CompleteItemList(i).ItemName)
-            Next
+                Me.L_Scrolls, Me.ItemName, Me.ItemSize, Me.L_Ancient, Me.L_AncientNames, Me.CompleteItemList, Me.L_CharClassDatas)
+
+            DontWork = True
+            Me.searchBox.DataSource = CompleteItemList
+            Me.searchBox.ValueMember = "ItemIndex"
+            Me.searchBox.DisplayMember = "ItemName"
+            Me.searchBox.SelectedIndex = -1
+            DontWork = False
+            SendMessage(Me.searchBox.Handle, &H1703, 0, "Type search term")
         Catch ex As Exception
             MessageBox.Show(ex.Message, "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Application.[Exit]()
         End Try
 
-        Me.DontWork = True
         Me.listBox_Group.ValueMember = "Group"
         Me.listBox_Group.DisplayMember = "GroupName"
         Me.listBox_Group.DataSource = Me.L_Groups
@@ -103,7 +116,6 @@ Public Class ShopEditor
         Me.ListBox_Element.DataSource = Me.L_ElementDatas
         Me.ListBox_Element.ValueMember = "ID"
         Me.ListBox_Element.DisplayMember = "Name"
-        Me.DontWork = False
 
         Me.Check_Level_Option = True
         Me.radioButton_ExcWeapon.Checked = True
@@ -279,12 +291,65 @@ Public Class ShopEditor
                 If(Me.checkBox_ExcOpt5.Checked, (Me.checkBox_ExcOpt5.Text & vbLf), ""), If(Me.checkBox_ExcOpt6.Checked, Me.checkBox_ExcOpt6.Text, "")})
         End If
         Me.LastSelectetItem.Controls.Clear()
-        'Corrección
-        'New Structures.CustomToolTip() With { _
-        '				.sizeX = 350, _
-        '				.sizeY = 210 _
-        '			}.SetToolTip(Me.LastSelectetItem, text2)
+
+        Dim ctt As New Structures.CustomToolTip With {.sizeX = 350,
+                                                      .sizeY = 210}
+        ctt.SetToolTip(Me.LastSelectetItem, text2)
+
         Me.ShopItems(Me.SelectedSI.ShopLocY, Me.SelectedSI.ShopLocX) = shopItem
+    End Sub
+    Private Sub btnSearchFilter_Click(sender As Object, e As EventArgs) Handles btnSearchFilter.Click
+        frmAdvancedFilter.ShowDialog()
+        DontWork = True
+        Me.searchBox.DataSource = Nothing
+
+        Dim L_Filter As New List(Of Structures.ItemSearchStuct)
+        Dim cc_filter As Structures.c_CharClass = DirectCast(frmAdvancedFilter.cmbClass.SelectedItem, Structures.c_CharClass)
+        Dim cco_filter As Boolean = frmAdvancedFilter.chkCharClassOnly.Checked
+        Dim type_filter As Structures.c_ItemType = DirectCast(frmAdvancedFilter.cmbType.SelectedItem, Structures.c_ItemType)
+        Dim slot_filter As Structures.c_ItemSlot = DirectCast(frmAdvancedFilter.cmbSlot.SelectedItem, Structures.c_ItemSlot)
+        For Each group As Structures.c_Groups In L_Groups
+            Dim Items As List(Of Structures.UniItem) = RetrieveListItems(group._GroupID)
+            For Each item As Structures.UniItem In Items
+                Dim AddItem As Boolean = True
+                If frmAdvancedFilter.chkCharClass.Checked Then
+                    Dim item_charclass As List(Of Structures.c_CharClass) = item.CharClass
+                    Dim found As Structures.c_CharClass
+                    If cco_filter Then
+                        found = item_charclass.Find(Function(cc) cc.Index = cc_filter.Index)
+                    Else
+                        Dim cClass As String = cc_filter.Index.Substring(0, cc_filter.Index.Length - 1)
+                        Dim cEvo As Integer = Convert.ToInt16(cc_filter.Index.Substring(cc_filter.Index.Length - 1, 1))
+                        found = item_charclass.Find(
+                        Function(cc) cc.Index.Substring(0, cc.Index.Length - 1) = cClass And
+                                     Convert.ToInt16(cc.Index.Substring(cc.Index.Length - 1, 1)) <= cEvo)
+                    End If
+                    AddItem = AddItem And found IsNot Nothing
+                End If
+                If type_filter.Index <> -1 Then
+                    AddItem = AddItem And item.Type = type_filter.Index
+                End If
+                If slot_filter.Index <> -2 Then
+                    AddItem = AddItem And item.Slot = slot_filter.Index
+                End If
+
+                If AddItem Then
+                    Dim item_name As String = item.Name
+                    Dim item_category As Integer = item.Group
+                    Dim item_index As Integer = item.Index
+                    L_Filter.Add(New Structures.ItemSearchStuct With {.ItemCategory = item_category,
+                                                                      .ItemIndex = item_index,
+                                                                      .ItemName = item_name})
+                End If
+            Next
+        Next
+
+        Me.searchBox.DataSource = L_Filter
+        Me.searchBox.ValueMember = "ItemIndex"
+        Me.searchBox.DisplayMember = "ItemName"
+        Me.searchBox.SelectedIndex = -1
+        DontWork = False
+        SendMessage(Me.searchBox.Handle, &H1703, 0, "Type search term")
     End Sub
     Private Sub listBox_Group_SelectedIndexChanged(sender As Object, e As EventArgs) Handles listBox_Group.SelectedIndexChanged
         If Me.listBox_Group.SelectedIndex <> -1 Then
@@ -321,21 +386,26 @@ Public Class ShopEditor
             Dim uniItem As Structures.UniItem = CType(Me.listBox_Index.SelectedItem, Structures.UniItem)
             Me.label_Size.Text = uniItem.X & "x" & uniItem.Y
             Me.checkBox_Skill.Checked = (uniItem.Skill <> 0 AndAlso Me.checkBox_Skill.Checked)
-            Me.listBox_Option.SelectedIndex = (If((uniItem.[Option] = 0), 0, Me.listBox_Option.SelectedIndex))
+            ' Me.listBox_Option.SelectedIndex = (If((uniItem.[Option] = 0), 0, Me.listBox_Option.SelectedIndex))
+            grpExcOpt.Enabled = Convert.ToBoolean(uniItem.[Option])
+            If Not grpExcOpt.Enabled Then
+                For Each cb As Object In grpExcOpt.Controls
+                    If TypeOf cb Is CheckBox Then
+                        cb.Checked = False
+                    End If
+                Next
+            End If
 
             If uniItem.Ancient Is Nothing Then
                 Me.grpAncientOptions.Enabled = False
             Else
                 Me.grpAncientOptions.Enabled = True
-                Me.DontWork = True
                 Me.strct.Setc_AncientNames(Me.L_AncientNames, uniItem.Ancient, Me.L_AncientNameDatas)
                 Me.cmbAncientName.DataSource = Nothing
                 Me.cmbAncientName.DataSource = Me.L_AncientNameDatas
                 Me.cmbAncientName.DisplayMember = "Name"
                 Me.cmbAncientName.ValueMember = "Index"
-                Me.DontWork = False
             End If
-            ' Me.numericUpDown_Durability.Value = (If((uniItem.Durability = 0), 0D, Me.numericUpDown_Durability.Value))
             Me.numericUpDown_Durability.Value = uniItem.Durability
             If uniItem.Type = 2 Or uniItem.Type = 4 Then
                 Me.grpSocket.Enabled = True
@@ -344,6 +414,12 @@ Public Class ShopEditor
                     Me.ListBox_Socket.SelectedIndex = 0
                 End If
                 Me.grpSocket.Enabled = False
+            End If
+            If uniItem.Skill > 0 Then
+                checkBox_Skill.Checked = False
+                checkBox_Skill.Enabled = True
+            Else
+                checkBox_Skill.Enabled = False
             End If
             Dim slot As Integer = uniItem.Slot
             Select Case slot
@@ -422,13 +498,12 @@ Public Class ShopEditor
                 Me.checkBox_ExcOpt4.Checked = True
                 Me.checkBox_ExcOpt5.Checked = True
                 Me.checkBox_ExcOpt6.Checked = True
-                Me.listBox_Level.SelectedIndex = 15
-                Me.listBox_Option.SelectedValue = 7
+                Me.listBox_Level.SelectedIndex = listBox_Level.Items.Count - 1
+                Me.listBox_Option.SelectedValue = listBox_Option.Items.Count - 1
                 Me.checkBox_Luck.Checked = True
                 If radioButton_ExcWeapon.Checked Then
                     Me.checkBox_Skill.Checked = True
                 End If
-                'Me.checkBox_FO.Checked = False
             Else
                 Me.checkBox_ExcOpt1.Checked = False
                 Me.checkBox_ExcOpt2.Checked = False
@@ -488,6 +563,15 @@ Public Class ShopEditor
             Me.checkBox_ExcOpt5.Text = "--- / Attack(Wiz) Speed+5"
             Me.checkBox_ExcOpt6.Text = "---"
             Me.checkBox_Skill.Checked = False
+        End If
+    End Sub
+
+    Private Sub searchBox_SelectedIndexChanged(sender As Object, e As EventArgs) Handles searchBox.SelectedIndexChanged
+        If Not DontWork Then
+            Dim selectedItem As Structures.ItemSearchStuct = CompleteItemList(searchBox.SelectedIndex)
+            Dim si As Structures.ItemSearchStuct = DirectCast(searchBox.SelectedItem, Structures.ItemSearchStuct)
+            listBox_Group.SelectedIndex = si.ItemCategory
+            listBox_Index.SelectedValue = si.ItemIndex
         End If
     End Sub
 
@@ -608,7 +692,8 @@ Public Class ShopEditor
         writer.WriteRaw("<!--" & vbCrLf)
         writer.WriteRaw("// ============================================================" & vbCrLf)
         writer.WriteRaw("// == Shop file created by MU.ToolKit [Shop Editor]" & vbCrLf)
-        writer.WriteRaw("// == coded by © TopReal.IT" & vbCrLf)
+        writer.WriteRaw("// == code original by Bigman" & vbCrLf)
+        writer.WriteRaw("// == coded by TopReal.IT" & vbCrLf)
         writer.WriteRaw("// == Decompiled by Virtual" & vbCrLf)
         writer.WriteRaw("// == Modified by LogoS" & vbCrLf)
         writer.WriteRaw("// == Shop: " & shop_name & vbCrLf)
@@ -642,7 +727,6 @@ Public Class ShopEditor
     End Sub
 #End Region ' Menu New/Open/SaveAs
 
-
 #End Region
 
 #Region "    Functions"
@@ -654,11 +738,11 @@ Public Class ShopEditor
             Return False
         End If
         Dim customPictureBox As New Structures.CustomPictureBox()
-        'Corrección
-        'New Structures.CustomToolTip() With { _
-        '	.sizeX = 350, _
-        '	.sizeY = 210 _
-        '}.SetToolTip(customPictureBox, toolTip)
+
+        Dim ctt As New Structures.CustomToolTip With {.sizeX = 350,
+                                                      .sizeY = 210}
+        ctt.SetToolTip(customPictureBox, toolTip)
+
         customPictureBox.Size = New Size(uniItem.X * 27, uniItem.Y * 27)
         Dim pictureBox As PictureBox = DirectCast(Me.pictureBox_ShopPreview.Controls(String.Concat(New Object() {"pictureBox_", num2, "x", num})), PictureBox)
         customPictureBox.Location = New Point(pictureBox.Location.X, pictureBox.Location.Y)
@@ -697,11 +781,11 @@ Public Class ShopEditor
             Return False
         End If
         Dim customPictureBox As New Structures.CustomPictureBox()
-        'Corrección
-        'New Structures.CustomToolTip() With { _
-        '	.sizeX = 350, _
-        '	.sizeY = 210 _
-        '}.SetToolTip(customPictureBox, toolTip)
+
+        Dim ctt As New Structures.CustomToolTip With {.sizeX = 350,
+                                                      .sizeY = 210}
+        ctt.SetToolTip(customPictureBox, toolTip)
+
         customPictureBox.Size = New Size(uniItem.X * 27, uniItem.Y * 27)
         Dim pictureBox As PictureBox = DirectCast(Me.pictureBox_ShopPreview.Controls(String.Concat(New Object() {"pictureBox_", num2, "x", num})), PictureBox)
         customPictureBox.Location = New Point(pictureBox.Location.X, pictureBox.Location.Y)
@@ -770,7 +854,6 @@ Public Class ShopEditor
         Return Nothing
     End Function
     Private Sub FilterLevelOption()
-        Me.DontWork = True
         Me.Check_Level_Option = False
         Me.listBox_Level.DataSource = Nothing
         Me.listBox_Option.DataSource = Nothing
@@ -792,14 +875,12 @@ Public Class ShopEditor
         Me.listBox_Option.ValueMember = "ID"
         Me.listBox_Option.DisplayMember = "Name"
         Me.Check_Level_Option = True
-        Me.DontWork = False
     End Sub
     Private Sub AddPreviewBoxes(x As Integer, y As Integer)
         Dim num As Integer = 19
         For i As Integer = 1 To y
             Dim num2 As Integer = 17
             For j As Integer = 1 To x
-                'Corrección
                 Dim pictureBox As New PictureBox() With {
                     .Name = String.Concat(New Object() {"pictureBox_", i, "x", j}),
                     .Location = New Point(num2, num),
@@ -992,25 +1073,6 @@ Public Class ShopEditor
 
     End Sub
 
-
-    Private Function FindItemByName(partialName As String) As List(Of Structures.ItemSearchStuct)
-        Dim searchResults As New List(Of Structures.ItemSearchStuct)()
-        For i As Integer = 0 To CompleteItemList.Count - 1
-            If CompleteItemList(i).ItemName.ToLower.Contains(partialName) Then
-                searchResults.Add(CompleteItemList(i))
-            End If
-        Next
-        Return searchResults
-    End Function
-
-    Private Sub searchBox_SelectedIndexChanged(sender As Object, e As EventArgs) Handles searchBox.SelectedIndexChanged
-        Dim selectedItem As Structures.ItemSearchStuct = CompleteItemList(searchBox.SelectedIndex)
-        listBox_Group.SelectedIndex = selectedItem.ItemCategory
-        listBox_Index.SelectedIndex = selectedItem.ItemIndex
-    End Sub
-
 #End Region
 
 End Class
-
-

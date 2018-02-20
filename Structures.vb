@@ -4,9 +4,9 @@ Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.IO
 Imports System.Windows.Forms
-'Imports System.Xml.Linq
 Imports System.Xml
-
+Imports System.Runtime.InteropServices
+Imports System.Reflection
 
 Public Class Structures
     Public Class c_Groups
@@ -38,6 +38,104 @@ Public Class Structures
             Me._GroupID = groupID__2
             Me._GroupName = GroupName
         End Sub
+    End Class
+
+    Public Class c_ItemSlot
+        Public _Index As Integer
+        Public _Name As String
+
+        Public Property Index() As Integer
+            Get
+                Return Me._Index
+            End Get
+            Set(value As Integer)
+                Me._Index = value
+            End Set
+        End Property
+        Public Property Name() As String
+            Get
+                Return Me._Name
+            End Get
+            Set(value As String)
+                Me._Name = value
+            End Set
+        End Property
+
+        Public Sub New(ID As Integer, Name As String)
+            Me._Index = ID
+            Me._Name = Name
+        End Sub
+    End Class
+
+    Public Class c_ItemType
+        Public _Index As Integer
+        Public _Name As String
+
+        Public Property Index() As Integer
+            Get
+                Return Me._Index
+            End Get
+            Set(value As Integer)
+                Me._Index = value
+            End Set
+        End Property
+        Public Property Name() As String
+            Get
+                Return Me._Name
+            End Get
+            Set(value As String)
+                Me._Name = value
+            End Set
+        End Property
+
+        Public Sub New(ID As Integer, Name As String)
+            Me._Index = ID
+            Me._Name = Name
+        End Sub
+    End Class
+
+    Public Class c_CharClass
+        Public _Index As String
+        Public _Name As String
+
+        Public Property Index() As String
+            Get
+                Return Me._Index
+            End Get
+            Set(value As String)
+                Me._Index = value
+            End Set
+        End Property
+        Public Property Name() As String
+            Get
+                Return Me._Name
+            End Get
+            Set(value As String)
+                Me._Name = value
+            End Set
+        End Property
+
+        Public Sub New(Index As String, Name As String)
+            Me._Index = Index
+            Me._Name = Name
+        End Sub
+
+        Public Overloads Function Equals(tmpTP As c_CharClass) As Boolean
+            If tmpTP Is Nothing Then
+                Return False
+            End If
+            Return (Me._Index.Equals(tmpTP._Index))
+        End Function
+
+        Public Overrides Function Equals(objTemp As Object) As Boolean
+            If objTemp Is Nothing Then Return False
+            Dim objTP As c_CharClass = TryCast(objTemp, c_CharClass)
+            If objTP Is Nothing Then
+                Return False
+            Else
+                Return Equals(objTP)
+            End If
+        End Function
     End Class
 
     Public Class c_SocketData
@@ -269,6 +367,49 @@ Public Class Structures
 
         Private _sizeY As Integer = 140
 
+#Region "        To disable dropshadow"
+        Dim exstyle2 As Integer = GetClassLongPtr32(Handle, GCL_STYLE)
+
+        <System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint:="GetClassLong")>
+        Public Shared Function GetClassLongPtr32(ByVal hWnd As IntPtr, ByVal nIndex As Integer) As Integer
+        End Function
+
+        <System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint:="SetClassLong")>
+        Public Shared Function SetClassLongPtr32(ByVal hWnd As IntPtr, ByVal nIndex As Integer, ByVal dwNewLong As Integer) As Integer
+        End Function
+
+        Private Const GCL_STYLE As Integer = -26
+        Private Const CS_DROPSHADOW As Integer = &H20000
+
+        Public ReadOnly Property Handle() As IntPtr
+            Get
+                Dim obj As Object
+                Dim hwnd As IntPtr
+                Try
+                    hwnd = IntPtr.Zero
+                    obj = GetType(ToolTip).InvokeMember("Handle", Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Instance Or Reflection.BindingFlags.GetProperty, Nothing, Me, Nothing)
+                    hwnd = CType(obj, IntPtr)
+                Catch ex As Exception
+
+                End Try
+                Return hwnd
+            End Get
+        End Property
+#End Region
+
+#Region "        To correctly show transparent background"
+        <DllImport("user32.dll")>
+        Private Shared Function GetWindowRect(ByVal hWnd As IntPtr, ByRef lpRect As Rectangle) As Boolean
+        End Function
+
+        Private Function GetWindowRect() As Rectangle
+            Dim rect As Rectangle = New Rectangle
+            Dim window As NativeWindow = TryCast(GetType(ToolTip).GetField("window", BindingFlags.Instance Or BindingFlags.NonPublic).GetValue(Me), NativeWindow)
+            GetWindowRect(window.Handle, rect)
+            Return rect
+        End Function
+#End Region
+
         Public Property sizeX() As Integer
             Get
                 Return Me._sizeX
@@ -289,18 +430,35 @@ Public Class Structures
 
         Public Sub New()
             MyBase.OwnerDraw = True
+
+            ' Disable dropshadow
+            If (exstyle2 And CS_DROPSHADOW) = CS_DROPSHADOW Then
+                exstyle2 -= CS_DROPSHADOW
+            End If
+            SetClassLongPtr32(Handle, GCL_STYLE, exstyle2)
+
             AddHandler MyBase.Popup, New PopupEventHandler(AddressOf Me.OnPopup)
             AddHandler MyBase.Draw, New DrawToolTipEventHandler(AddressOf Me.OnDraw)
         End Sub
 
         Private Sub OnDraw(sender As Object, e As DrawToolTipEventArgs)
             Dim graphics As Graphics = e.Graphics
-            Dim linearGradientBrush As New LinearGradientBrush(e.Bounds, Color.Silver, Color.Goldenrod, 50.0F)
-            graphics.FillRectangle(linearGradientBrush, e.Bounds)
-            graphics.DrawRectangle(New Pen(Brushes.Azure, 1.0F), New Rectangle(e.Bounds.X, e.Bounds.Y, e.Bounds.Width - 1, e.Bounds.Height - 1))
-            graphics.DrawString(e.ToolTipText, New Font(e.Font, FontStyle.Bold), Brushes.Silver, New PointF(CSng(e.Bounds.X + 6), CSng(e.Bounds.Y + 6)))
-            graphics.DrawString(e.ToolTipText, New Font(e.Font, FontStyle.Bold), Brushes.Black, New PointF(CSng(e.Bounds.X + 5), CSng(e.Bounds.Y + 5)))
-            linearGradientBrush.Dispose()
+
+            ' Correctly show transparent background
+            graphics.SmoothingMode = SmoothingMode.AntiAlias
+            Dim windowRect As Rectangle = GetWindowRect()
+            graphics.CopyFromScreen(windowRect.Left, windowRect.Top, 0, 0, New Size(e.Bounds.Width, e.Bounds.Height))
+
+            Dim semiTransBrush As New SolidBrush(Color.FromArgb(92, 0, 0, 0))
+            graphics.FillRectangle(semiTransBrush, e.Bounds)
+
+            Dim stringFormat As New StringFormat()
+            stringFormat.Alignment = StringAlignment.Center
+            Dim rect As New Rectangle(0, 0, e.Bounds.Width, e.Bounds.Height)
+
+            graphics.DrawString(e.ToolTipText, e.Font, Brushes.White, rect, stringFormat)
+
+            semiTransBrush.Dispose()
         End Sub
 
         Private Sub OnPopup(sender As Object, e As PopupEventArgs)
@@ -309,9 +467,36 @@ Public Class Structures
     End Class
 
     Public Structure ItemSearchStuct
-        Public ItemName As String
-        Public ItemCategory As Integer
-        Public ItemIndex As Integer
+        Private m_ItemName As String
+        Private m_ItemCategory As Integer
+        Private m_ItemIndex As Integer
+
+        Public Property ItemName() As String
+            Get
+                Return m_ItemName
+            End Get
+            Set(value As String)
+                m_ItemName = value
+            End Set
+        End Property
+
+        Public Property ItemCategory() As Integer
+            Get
+                Return m_ItemCategory
+            End Get
+            Set(value As Integer)
+                m_ItemCategory = value
+            End Set
+        End Property
+
+        Public Property ItemIndex() As Integer
+            Get
+                Return m_ItemIndex
+            End Get
+            Set(value As Integer)
+                m_ItemIndex = value
+            End Set
+        End Property
     End Structure
 
     Public Structure ShopItem
@@ -536,6 +721,16 @@ Public Class Structures
         End Property
         Private m_Type As Integer
 
+        Public Property CharClass() As List(Of Structures.c_CharClass)
+            Get
+                Return m_CharClass
+            End Get
+            Set(value As List(Of Structures.c_CharClass))
+                m_CharClass = value
+            End Set
+        End Property
+        Private m_CharClass As List(Of Structures.c_CharClass)
+
     End Structure
 
     Private Function CheckNodeAttribute(ByVal node As XmlNode, attribute As String) As String
@@ -628,7 +823,8 @@ Public Class Structures
                                                     ByRef ItemSize As String(,),
                                                     ByRef L_Ancient As List(Of Structures.c_AncientItems),
                                                     ByRef L_AncientNames As List(Of Structures.c_AncientNames),
-                                                    ByRef L_SearchItems As List(Of Structures.ItemSearchStuct))
+                                                    ByRef L_SearchItems As List(Of Structures.ItemSearchStuct),
+                                                    ByVal L_CharClassDatas As List(Of Structures.c_CharClass))
 
         Dim group_index As String = ""
         Dim group_name As String = ""
@@ -676,6 +872,26 @@ Public Class Structures
                     Dim ii As Integer = Convert.ToInt32(item_index)
                     item_ancient = L_Ancient.Find(Function(ancient) ancient.Cat = gi And ancient.Item_index = ii)
 
+                    Dim cc As New List(Of String)
+                    Dim item_charclass As New List(Of c_CharClass)
+                    cc.Add(CheckNodeAttribute(Items(xml_item), "DarkKnight"))
+                    cc.Add(CheckNodeAttribute(Items(xml_item), "FairyElf"))
+                    cc.Add(CheckNodeAttribute(Items(xml_item), "DarkWizard"))
+                    cc.Add(CheckNodeAttribute(Items(xml_item), "MagicGladiator"))
+                    cc.Add(CheckNodeAttribute(Items(xml_item), "DarkLord"))
+                    cc.Add(CheckNodeAttribute(Items(xml_item), "Summoner"))
+                    cc.Add(CheckNodeAttribute(Items(xml_item), "RageFighter"))
+                    For i As Integer = 0 To cc.Count - 1
+                        If cc.Item(i) <> "0" Then
+                            Dim c As String = i.ToString
+                            Dim e As String = cc.Item(i)
+                            Dim found As c_CharClass = L_CharClassDatas.Find(Function(charclass) charclass.Index = c & e)
+                            If found IsNot Nothing Then
+                                item_charclass.Add(found)
+                            End If
+                        End If
+                    Next
+
                     item_name = CheckNodeAttribute(Items(xml_item), "Name")
 
                     Dim item As New Structures.UniItem() With {
@@ -689,14 +905,17 @@ Public Class Structures
                                 .Durability = Convert.ToInt16(item_durability),
                                 .Ancient = If(item_ancient IsNot Nothing, item_ancient.ShallowCopy, Nothing),
                                 .Name = item_name,
-                                .Type = Convert.ToInt16(item_type)
+                                .Type = Convert.ToInt16(item_type),
+                                .CharClass = item_charclass
                             }
+
                     Dim searchItem As New Structures.ItemSearchStuct() With {
                             .ItemName = item_name,
                             .ItemCategory = Convert.ToInt32(group_index),
                             .ItemIndex = Convert.ToInt32(item_index)
                         }
                     L_SearchItems.Add(searchItem)
+
                     Select Case item.Group
                         Case 0
                             L_Swords.Add(item)
@@ -786,9 +1005,7 @@ Public Class Structures
 
         combo_AncientNames.Clear()
         combo_AncientNames.Insert(0, New Structures.c_AncientNames(Nothing, "None"))
-        'For i As Integer = 0 To names.Count - 1
-        '    L_AncientNames.Add(New Structures.c_AncientNames(i, names(i).Name))
-        'Next
+
         If Ancient_Indexes IsNot Nothing Then
             IndexT1 = Ancient_Indexes.IndexT1
             IndexT2 = Ancient_Indexes.IndexT2
@@ -828,6 +1045,60 @@ Public Class Structures
         L_ElementDatas.Add(New Structures.c_ElementData(3, "Earth"))
         L_ElementDatas.Add(New Structures.c_ElementData(4, "Wind"))
         L_ElementDatas.Add(New Structures.c_ElementData(5, "Darkness"))
+    End Sub
+
+    Public Sub Setc_CharClass(ByRef L_CharClassDatas As List(Of Structures.c_CharClass))
+        L_CharClassDatas.Clear()
+        L_CharClassDatas.Add(New Structures.c_CharClass("01", "Dark Knight"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("02", "Blade Knight"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("03", "Blade Master"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("11", "Fairy Elf"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("12", "Muse Elf"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("13", "High Elf"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("21", "Dark Wizard"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("22", "Soul Master"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("23", "Grand Master"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("31", "Magic Gladiator"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("32", "Duel Master"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("41", "Dark Lord"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("42", "Lord Emperor"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("51", "Summoner"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("52", "Bloody Summoner"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("53", "Dimension Master"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("61", "Rage Fighter"))
+        L_CharClassDatas.Add(New Structures.c_CharClass("62", "Fist Master"))
+    End Sub
+
+    Public Sub Setc_ItemType(ByRef L_ItemTypeDatas As List(Of Structures.c_ItemType))
+        L_ItemTypeDatas.Clear()
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(-1, "All"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(0, "Common"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(1, "Regular Item"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(2, "Socket Item"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(3, "380 Option Item"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(4, "Lucky Item / Socket + Refinery"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(5, "Event Item"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(6, "Archangel Item"))
+        L_ItemTypeDatas.Add(New Structures.c_ItemType(7, "Chaos Item"))
+    End Sub
+
+    Public Sub Setc_ItemSlot(ByRef L_ItemSlotDatas As List(Of Structures.c_ItemSlot))
+        L_ItemSlotDatas.Clear()
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(-2, "All"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(-1, "Not Applies"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(0, "Left Hand"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(1, "Right Hand"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(2, "Helmet"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(3, "Armor"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(4, "Pants"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(5, "Gloves"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(6, "Boots"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(7, "Wings"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(8, "Helper (pet)"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(9, "Pendant"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(10, "Left Ring"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(11, "Right Ring"))
+        L_ItemSlotDatas.Add(New Structures.c_ItemSlot(236, "Pentagram"))
     End Sub
 
 End Class
